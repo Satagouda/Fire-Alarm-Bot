@@ -1,0 +1,50 @@
+#include <SoftwareSerial.h>
+
+SoftwareSerial gsm(9, 10);  // GSM TX to D9, RX to D10
+#define smokeSensor A0
+#define tempSensor A1
+#define buzzer 6
+
+void sendSMS() {
+    gsm.println("AT+CMGF=1");  // Set SMS mode
+    delay(1000);
+    gsm.println("AT+CMGS=\"+1234567890\"");  // Replace with your number
+    delay(1000);
+    gsm.println("Fire Alert! Smoke or high temperature detected.");  
+    delay(100);
+    gsm.write(26);  // End SMS command
+    delay(3000);
+}
+
+void callAlert() {
+    gsm.println("ATD+1234567890;");  // Replace with your number
+    delay(15000);  // Call duration
+    gsm.println("ATH");  // End call
+}
+
+void setup() {
+    Serial.begin(9600);
+    gsm.begin(9600);
+    pinMode(smokeSensor, INPUT);
+    pinMode(tempSensor, INPUT);
+    pinMode(buzzer, OUTPUT);
+}
+
+void loop() {
+    int smoke = analogRead(smokeSensor);
+    int temp = analogRead(tempSensor) * (5.0 / 1023.0) * 100;  // Convert LM35 reading to Celsius
+
+    Serial.print("Smoke Level: "); Serial.println(smoke);
+    Serial.print("Temperature: "); Serial.println(temp);
+
+    if (smoke > 300 || temp > 50) {  // Adjust thresholds as needed
+        digitalWrite(buzzer, HIGH);
+        sendSMS();
+        callAlert();
+        delay(5000);
+    } else {
+        digitalWrite(buzzer, LOW);
+    }
+
+    delay(2000);
+}
